@@ -1,31 +1,30 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
 import sqlite3
-import subprocess
-import hashlib
 import os
 
 app = Flask(__name__)
 
-SECRET_KEY = "dev-secret-key-12345"   
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'a-very-secure-random-key')
 
 @app.route("/login", methods=["POST"])
 def login():
     username = request.json.get("username")
     password = request.json.get("password")
+    
     conn = sqlite3.connect("users.db")
     cursor = conn.cursor()
-    query = f"SELECT * FROM users WHERE username='{username}' AND password='{password}'"
-    cursor.execute(query)
+    
+    query = "SELECT * FROM users WHERE username=? AND password=?"
+    cursor.execute(query, (username, password))
+    
     result = cursor.fetchone()
     if result:
-        return {"status": "success", "user": username}
-    return {"status": "error", "message": "Invalid credentials"}
+        return jsonify({"status": "success", "user": username})
+    return jsonify({"status": "error", "message": "Invalid credentials"}), 401
 
 @app.route("/compute", methods=["POST"])
 def compute():
-    expression = request.json.get("expression", "1+1")
-    result = eval(expression)   
-    return {"result": result}
+    return jsonify({"message": "This feature is disabled for security reasons"}), 403
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000) [cite: 112]
+    app.run(host="0.0.0.0", port=5000)
