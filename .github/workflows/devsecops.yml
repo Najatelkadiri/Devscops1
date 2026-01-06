@@ -1,0 +1,40 @@
+name: DevSecOps Pipeline
+on:
+  push:
+    branches: [ "main" ]
+
+permissions:
+  security-events: write
+  contents: read
+
+jobs:
+  devsecops:
+    runs-on: ubuntu-latest
+    steps:
+      - [cite_start]uses: actions/checkout@v3 [cite: 149]
+
+      - name: Init CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: python
+      - name: Run CodeQL
+        uses: github/codeql-action/analyze@v3
+
+      - name: Install Bandit
+        run: pip install bandit
+      - name: Run Bandit
+        run: bandit -r api --severity-level high
+
+      - name: Install Safety
+        run: pip install safety
+      - name: Dependency scan
+        run: safety check -r requirements.txt
+
+      - name: Build Docker image
+        run: docker build -t devsecops-api .
+      - name: Trivy Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: devsecops-api
+          severity: CRITICAL,HIGH
+          exit-code: 1
